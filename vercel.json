@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/download/remini",
+      "dest": "api/download/remini.js"
+    },
+    {
+      "src": "/api/download/tiktok",
+      "dest": "api/download/tiktok.js"
+    },
+    {
+      "src": "/api/download/igdl",
+      "dest": "api/download/igdl.js"
+    },
+    {
+      "src": "/api/update",
+      "dest": "api/update.js"
+    },
+    {
+      "src": "/api/download/ytdl",
+      "dest": "api/download/ytdl.js"
+    },
+    {
+      "src": "/api/tools/check-host",
+      "dest": "api/tools/check-host.js"
+    },
+    {
+      "src": "/api/download/mediafire",
+      "dest": "api/download/mediafire.js"
+    },
+    {
+      "src": "/api/download/apk",
+      "dest": "api/download/apk.js"
+    },
+    {
+      "src": "/api/search/komiku",
+      "dest": "api/search/komiku.js"
+    },
+    {
+      "src": "/api/ai/fluxai",
+      "dest": "api/ai/fluxai.js"
+    },
+    {
+      "src": "/api/tools/speechtotext",
+      "dest": "api/tools/speechtotext.js"
+    }
+  ]
+}
