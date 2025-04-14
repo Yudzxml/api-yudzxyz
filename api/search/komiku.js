@@ -126,36 +126,42 @@ class Komiku {
         });
     }
 
-    async chapter(url) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const response = await axios.get(url);
-                const $ = cheerio.load(response.data);
-                let images = $("#Baca_Komik img").map((a, i) => $(i).attr("src")).get();
-                let result = {
-                    metadata: {},
-                    buffer: {}
-                };
-                $(".tbl tbody tr").each((u, e) => {
-                    let name = $(e).find("td").eq(0).text().split(" ").join("_").toLowerCase().trim();
-                    let value = $(e).find("td").eq(1).text().trim();
-                    result.metadata[name] = value;
-                });
-                result.buffer = await toPDF(images);
-                resolve({
-                    status: 200,
-                    author: "Yudzxml",
-                    data: result
-                });
-            } catch (error) {
-                reject({
-                    status: 500,
-                    author: "Yudzxml",
-                    error: error.message
-                });
-            }
+    async function chapter(url) {
+    try {
+        const response = await axios.get(url);
+        const $ = cheerio.load(response.data);
+        
+        // Ekstrak sumber gambar
+        let images = $("#Baca_Komik img").map((_, img) => $(img).attr("src")).get();
+        
+        let result = {
+            metadata: {},
+            buffer: {}
+        };
+        
+        // Ekstrak metadata
+        $(".tbl tbody tr").each((_, row) => {
+            let name = $(row).find("td").eq(0).text().split(" ").join("_").toLowerCase().trim();
+            let value = $(row).find("td").eq(1).text().trim();
+            result.metadata[name] = value;
         });
+        
+        // Konversi gambar ke PDF
+        result.buffer = await toPDF(images);
+        
+        return {
+            status: 200,
+            author: "Yudzxml",
+            data: result
+        };
+    } catch (error) {
+        return {
+            status: 500,
+            author: "Yudzxml",
+            error: error.message
+        };
     }
+}
 
     async search(q) {
         return new Promise(async (resolve, reject) => {
