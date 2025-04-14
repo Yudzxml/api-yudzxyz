@@ -12,27 +12,18 @@ function h2k(integer) {
 async function toPDF(images, opt = {}) {
     return new Promise(async (resolve, reject) => {
         if (!Array.isArray(images)) images = [images];
-        let buffs = [],
-            doc = new PDFDocument({
-                margin: 0
-            });
+        const buffs = [];
+        const doc = new PDFDocument({ margin: 0 });
 
-        for (let x = 0; x < images.length; x++) {
-            if (/.webp|.gif/.test(images[x])) continue;
+        for (const imageUrl of images) {
+            if (/.webp|.gif/.test(imageUrl)) continue;
             try {
-                let data = (await axios.get(images[x], {
-                    responseType: 'arraybuffer',
-                    ...opt
-                })).data;
-                let image = doc.openImage(data);
-                doc.addPage({
-                    size: [image.width, image.height]
-                });
-                doc.image(data, 0, 0, {
-                    width: image.width,
-                    height: image.height
-                });
+                const { data } = await axios.get(imageUrl, { responseType: 'arraybuffer', ...opt });
+                const image = doc.openImage(data);
+                doc.addPage({ size: [image.width, image.height] });
+                doc.image(data, 0, 0, { width: image.width, height: image.height });
             } catch (error) {
+                console.error(`Error loading image: ${imageUrl}`, error);
                 continue;
             }
         }
@@ -45,154 +36,106 @@ async function toPDF(images, opt = {}) {
 
 class Komiku {
     async latest() {
-        return new Promise(async (resolve, reject) => {
-            await axios.get("https://komiku.id").then((a) => {
-                let $ = cheerio.load(a.data);
-                let array = [];
-                $("#Terbaru .ls4w .ls4").each((a, i) => {
-                    let url = "https://komiku.id/" + $(i).find("a").attr("href");
-                    let title = $(i).find(".ls4j h3 a").text().trim();
-                    let release = $(i).find(".ls4j .ls4s").text().trim().split(" ").slice(2).join(' ').trim();
-                    let chapter = $(i).find(".ls4j .ls24").text().trim().split("Chapter")[1].trim();
-                    let thumbnail = $(i).find(".lazy").attr("data-src").split("?")[0].trim();
-                    array.push({
-                        title,
-                        release,
-                        chapter,
-                        thumbnail,
-                        url
-                    });
-                });
-                resolve({
-                    status: 200,
-                    author: "Yudzxml",
-                    data: array
-                });
-            }).catch((error) => {
-                reject({
-                    status: 500,
-                    author: "Yudzxml",
-                    error: error.message
-                });
+        try {
+            const response = await axios.get("https://komiku.id");
+            const $ = cheerio.load(response.data);
+            const array = [];
+            $("#Terbaru .ls4w .ls4").each((_, element) => {
+                const url = "https://komiku.id/" + $(element).find("a").attr("href");
+                const title = $(element).find(".ls4j h3 a").text().trim();
+                const release = $(element).find(".ls4j .ls4s").text().trim().split(" ").slice(2).join(' ').trim();
+                const chapter = $(element).find(".ls4j .ls24").text().trim().split("Chapter")[1].trim();
+                const thumbnail = $(element).find(".lazy").attr("data-src").split("?")[0].trim();
+                array.push({ title, release, chapter, thumbnail, url });
             });
-        });
+            return { status: 200, author: "Yudzxml", data: array };
+        } catch (error) {
+            throw { status: 500, author: "Yudzxml", error: error.message };
+        }
     }
 
     async detail(url) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const response = await axios.get(url);
-                const $ = cheerio.load(response.data);
+        try {
+            const response = await axios.get(url);
+            const $ = cheerio.load(response.data);
+            const result = { metadata: {}, chapter: [] };
 
-                let result = {
-                    metadata: {},
-                    chapter: []
-                };
-
-                $("#Informasi").each((a, i) => {
-                    $(i).find(".inftable tr").each((u, e) => {
-                        let name = $(e).find("td").eq(0).text().split(" ").join("_").toLowerCase().trim();
-                        let value = $(e).find("td").eq(1).text().trim();
-                        result.metadata[name] = value;
-                    });
-                    result.metadata.thumbnail = $(i).find("img").attr("src").split("?")[0].trim();
+            $("#Informasi").each((_, element) => {
+                $(element).find(".inftable tr").each((_, row) => {
+                    const name = $(row).find("td").eq(0).text().split(" ").join("_").toLowerCase().trim();
+                    const value = $(row).find("td").eq(1).text().trim();
+                    result.metadata[name] = value;
                 });
-                result.metadata.sinopsis = $("#Judul .desc").text().trim();
-                $("#Daftar_Chapter tbody tr").each((a, i) => {
-                    let chapter = $(i).find(".judulseries a span").text();
-                    let reader = h2k(Number($(i).find(".pembaca i").text().trim()));
-                    let released = $(i).find(".tanggalseries").text().trim();
-                    let url = "https://komiku.id/" + $(i).find(".judulseries a").attr("href");
-                    if (!chapter) return;
-                    result.chapter.push({
-                        chapter,
-                        reader,
-                        released,
-                        url
-                    });
-                });
-                resolve({
-                    status: 200,
-                    author: "Yudzxml",
-                    data: result
-                });
-            } catch (error) {
-                reject({
-                    status: 500,
-                    author: "Yudzxml",
-                    error: error.message
-                });
-            }
-        });
+                result.metadata.thumbnail = $(element).find("img").attr("src").split("?")[0].trim();
+            });
+            result.metadata.sinopsis = $("#Judul .desc").text().trim();
+            $("#Daftar_Chapter tbody tr").each((_, element) => {
+                const chapter = $(element).find(".judulseries a span").text();
+                const reader = h2k(Number($(element).find(".pembaca i").text().trim()));
+                const released = $(element).find(".tanggalseries").text().trim();
+                const chapterUrl = "https://komiku.id/" + $(element).find(".judulseries a").attr("href");
+                if (!chapter) return;
+                result.chapter.push({ chapter, reader, released, url: chapterUrl });
+            });
+            return { status: 200, author: "Yudzxml", data: result };
+        } catch (error) {
+            throw { status: 500, author: "Yudzxml", error: error.message };
+        }
     }
 
-    async function chapter(url) {
-    try {
-        const response = await axios.get(url);
-        const $ = cheerio.load(response.data);
-        
-        // Ekstrak sumber gambar
-        let images = $("#Baca_Komik img").map((_, img) => $(img).attr("src")).get();
-        
-        let result = {
-            metadata: {},
-            buffer: {}
-        };
-        
-        // Ekstrak metadata
-        $(".tbl tbody tr").each((_, row) => {
-            let name = $(row).find("td").eq(0).text().split(" ").join("_").toLowerCase().trim();
-            let value = $(row).find("td").eq(1).text().trim();
-            result.metadata[name] = value;
-        });
-        
-        // Konversi gambar ke PDF
-        result.buffer = await toPDF(images);
-        
-        return {
-            status: 200,
-            author: "Yudzxml",
-            data: result
-        };
-    } catch (error) {
-        return {
-            status: 500,
-            author: "Yudzxml",
-            error: error.message
-        };
+    async chapter(url) {
+        try {
+            const response = await axios.get(url);
+            const $ = cheerio.load(response.data);
+            
+            // Ekstrak sumber gambar
+            const images = $("#Baca_Komik img").map((_, img) => $(img).attr("src")).get();
+            
+            const result = {
+                metadata: {},
+                buffer: {}
+            };
+            
+            // Ekstrak metadata
+            $(".tbl tbody tr").each((_, row) => {
+                const name = $(row).find("td").eq(0).text().split(" ").join("_").toLowerCase().trim();
+                const value = $(row).find("td").eq(1).text().trim();
+                result.metadata[name] = value;
+            });
+            
+            // Konversi gambar ke PDF
+            result.buffer = await toPDF(images);
+            
+            return {
+                status: 200,
+                author: "Yudzxml",
+                data: result
+            };
+        } catch (error) {
+            return {
+                status: 500,
+                author: "Yudzxml",
+                error: error.message
+            };
+        }
     }
-}
 
     async search(q) {
-        return new Promise(async (resolve, reject) => {
-            await axios.get(`https://api.komiku.id/?post_type=manga&s=${q}`).then((a) => {
-                let $ = cheerio.load(a.data);
-                let array = [];
-                $(".bge").each((a, i) => {
-                    let title = $(i).find(".kan a h3").text().trim();
-                    let url = "https://komiku.id" + $(i).find(".kan a").attr("href");
-                    let thumbnail = $(i).find(".bgei img").attr("src").split("?")[0].trim();
-                    let synopsis = $(i).find(".kan p").text().trim().split(".")[1].trim();
-                    array.push({
-                        title,
-                        thumbnail,
-                        synopsis,
-                        url
-                    });
-                });
-                resolve({
-                    status: 200,
-                    author: "Yudzxml",
-                    data: array
-                });
-            }).catch((error) => {
-                reject({
-                    status: 500,
-                    author: "Yudzxml",
-                    error: error.message
-                });
+        try {
+            const response = await axios.get(`https://api.komiku.id/?post_type=manga&s=${q}`);
+            const $ = cheerio.load(response.data);
+            const array = [];
+            $(".bge").each((_, element) => {
+                const title = $(element).find(".kan a h3").text().trim();
+                const url = "https://komiku.id" + $(element).find(".kan a").attr("href");
+                const thumbnail = $(element).find(".bgei img").attr("src").split("?")[0].trim();
+                const synopsis = $(element).find(".kan p").text().trim().split(".")[1].trim();
+                array.push({ title, thumbnail, synopsis, url });
             });
-        });
+            return { status: 200, author: "Yudzxml", data: array };
+        } catch (error) {
+            throw { status: 500, author: "Yudzxml", error: error.message };
+        }
     }
 }
 
