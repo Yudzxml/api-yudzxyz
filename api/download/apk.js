@@ -45,12 +45,8 @@ let aptoide = {
     res = await res.json();
     ress = res.datalist.list.map((v) => {
       return {
-    status: 200, 
-    author: 'Yudzxml',
-    data: {
         name: v.name,
         id: v.package,
-        }
       };
     });
     return ress;
@@ -65,14 +61,10 @@ let aptoide = {
 
     res = await res.json();
     return {
-    status: 200, 
-    author: 'Yudzxml',
-    data: {
       img: res.datalist.list[0].icon,
       developer: res.datalist.list[0].store.name,
       appname: res.datalist.list[0].name,
       link: res.datalist.list[0].file.path,
-     }
     };
   },
 };
@@ -90,7 +82,7 @@ module.exports = async (req, res) => {
 
             try {
                 const searchData = await aptoide.search(search); // Menggunakan aptoide.search
-                return res.status(200).json(searchData);
+                return res.status(200).json({ status: 200, author: 'Yudzxml', data: searchData });
             } catch (err) {
                 return res.status(500).json({ status: 500, author: 'Yudzxml', error: err.message });
             }
