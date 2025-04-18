@@ -45,8 +45,12 @@ let aptoide = {
     res = await res.json();
     ress = res.datalist.list.map((v) => {
       return {
+    status: 200, 
+    author: 'Yudzxml',
+    data: {
         name: v.name,
         id: v.package,
+        }
       };
     });
     return ress;
@@ -61,10 +65,14 @@ let aptoide = {
 
     res = await res.json();
     return {
+    status: 200, 
+    author: 'Yudzxml',
+    data: {
       img: res.datalist.list[0].icon,
       developer: res.datalist.list[0].store.name,
       appname: res.datalist.list[0].name,
       link: res.datalist.list[0].file.path,
+     }
     };
   },
 };
