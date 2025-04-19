@@ -1,116 +1,165 @@
 const axios = require("axios");
 
-const EMBED = "https://www.youtube.com/oembed?type=json&url=URLNYA";
-const DOWNLOAD = "https://p.oceansaver.in/ajax/download.php";
-const FORMAT = [
-  "mp3",
-  "m4a",
-  "360",
-  "480",
-  "720",
-  "1080",
-  "4k",
-  "8k",
-  "webm_audio",
-  "aac",
-  "flac",
-  "opus",
-  "wav"
+const SUPPORTED_AUDIO_FORMATS = ["mp3", "m4a", "webm", "acc", "flac", "ogg",
+    "wav"
 ];
 
-class YTDL {
-  constructor() {
-    this.link = "";
+function generateSimilarString() {
+  const hexChars = '0123456789abcdef';
+  const nonHexChars = 'gjkmnpqrstuvwxyz';
+  const allChars = hexChars + nonHexChars;
+  
+  let str = '';
+  
+  for (let i = 0; i < 16; i++) {
+    str += hexChars[Math.floor(Math.random() * hexChars.length)];
   }
-
-  async Info(link) {
-    this.link = link;
-    const res = await axios({
-      url: EMBED.replace("URLNYA", link),
-      method: "GET",
-      responseType: "json"
-    });
-
-    return res.data;
-  }
-
-  async Dl(reso) {
-    let response = {};
-
-    if (!FORMAT.includes(reso)) {
-      return console.log("[ ERROR ] Format tidak ada!");
+  
+  const transitionPattern = [
+    {chars: hexChars, length: 1},
+    {chars: nonHexChars, length: 3},
+    {chars: allChars, length: 4},
+    {chars: hexChars, length: 2}
+  ];
+  
+  transitionPattern.forEach(section => {
+    for (let i = 0; i < section.length; i++) {
+      str += section.chars[Math.floor(Math.random() * section.chars.length)];
     }
-    const res = await axios({
-      url: DOWNLOAD,
-      method: "GET",
-      responseType: "json",
-      params: {
-        button: "1",
-        start: "1",
-        end: "1",
-        format: reso,
-        iframe_source: "https://www.y2down.app",
-        url: this.link
-      }
-    });
-    
-    while (true) {
-      const wit = await axios({
-        url: res.data.progress_url,
-        method: "GET",
-        responseType: "json",
-      });
-      console.log("[ DOWNLOAD ] " + wit.data.text);
+  });
 
-      if (wit.data.progress > 999 && wit.data.success == 1) {
-        response = wit.data;
-        break;
-      }
+  const lastPart = () => {
+    let part = hexChars.substr(Math.floor(Math.random() * 6), 1);
+    part += Math.floor(Math.random() * 10);
+    part += Array(4).fill(Math.floor(Math.random() * 10)).join('');
+    part += Array(4).fill(part[part.length-1]).join('');
+    return part;
+  };
 
-      await new Promise(resolve => setTimeout(resolve, 5_000)); // Jeda 5 detik
-    }
-
-    return response;
-  }
+  str += lastPart().substr(0, 16);
+  
+  return str.substr(0, 32);
 }
+
+const SUPPORTED_VIDEO_QUALITIES = {
+    low: "360",
+    medium: "480",
+    hd: "720",
+    fullHd: "1080",
+    hdHigh: "1440",
+    ultraHd: "4k",
+};
+
+const ApiKeys = generateSimilarString()
+
+const ytdl = {
+    request: async (url, format, quality) => {
+        try {
+            if (SUPPORTED_AUDIO_FORMATS.includes(format)) {
+                const {
+                    data
+                } = await axios.get(
+                    https://p.oceansaver.in/ajax/download.php?format=${format}&url=${url}
+                );
+                return data;
+            } else if (SUPPORTED_VIDEO_QUALITIES[quality]) {
+                const {
+                    data
+                } = await axios.get(
+                    https://p.oceansaver.in/ajax/download.php?copyright=0&format=${SUPPORTED_VIDEO_QUALITIES[quality]}&url=${url}&api=${ApiKeys}
+                );
+                return data;
+            } else {
+                console.error(
+                    Invalid format or quality. Supported formats: ${SUPPORTED_AUDIO_FORMATS.join(
+            ", "
+          )}, Supported qualities: ${Object.keys(SUPPORTED_VIDEO_QUALITIES).join(", ")}
+                );
+            }
+        } catch (error) {
+            console.error(Error (request): ${error.message});
+        }
+    },
+
+    convert: async (taskId) => {
+        try {
+            const {
+                data
+            } = await axios.get(
+                https://p.oceansaver.in/ajax/progress.php?id=${taskId}
+            );
+            return data;
+        } catch (error) {
+            console.error(Error (convert): ${error.message});
+        }
+    },
+
+    repeatRequest: async (taskId) => {
+        while (true) {
+            try {
+                const response = await ytdl.convert(taskId);
+                if (response && response.download_url) {
+                    return {
+                        videoLinks: response.download_url,
+                    };
+                }
+            } catch (error) {
+                console.error(
+                    Error (repeatRequest): ${error.message});
+            }
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+    },
+};
 
 // Middleware untuk API
 module.exports = async (req, res) => {
-  const { method } = req;
-  if (method === 'GET') {
-    const { url, format } = req.query; // Mengambil parameter dari query string
-    if (!url) {
-      return res.status(400).json({ status: 400, author: 'Yudzxml', error: 'URL tidak valid. Pastikan URL Yang diberikan Benar!!' });
-    }
-
-    // Validasi format
-    const validFormats = FORMAT; // Use the FORMAT array defined in YTDL
-    if (format && !validFormats.includes(format.toLowerCase())) {
-      return res.status(400).json({ status: 400, author: 'Yudzxml', error: `Format tidak valid. Pilih salah satu dari: ${validFormats.join(', ')}` });
-    }
-
-    const ytdl = new YTDL();
-
-    try {
-      // Fetch video info
-      const videoInfo = await ytdl.Info(url);
-      // Download video in specified format or default to mp3
-      const downloadResponse = await ytdl.Dl(format ? format.toLowerCase() : 'mp3');
-      
-      // Combine video info and download response
-      return res.status(200).json({
-        status: 200,
-        author: 'Yudzxml',
-        data: {
-          videoInfo,
-          downloadResponse
+    const { method } = req;
+    if (method === 'GET') {
+        const { url, format, quality } = req.query; // Mengambil parameter dari query string
+        if (!url) {
+            return res.status(400).json({ status: 400, author: 'Yudzxml', error: 'URL tidak valid. Pastikan URL yang diberikan benar!' });
         }
-      });
-    } catch (err) {
-      return res.status(500).json({ status: 500, author: 'Yudzxml', error: err.message });
+
+        // Validasi format
+        if (format && !SUPPORTED_AUDIO_FORMATS.includes(format.toLowerCase()) && !Object.keys(SUPPORTED_VIDEO_QUALITIES).includes(quality)) {
+            return res.status(400).json({ status: 400, author: 'Yudzxml', error: `Format tidak valid. Pilih salah satu dari: ${SUPPORTED_AUDIO_FORMATS.join(', ')}` });
+        }
+
+        try {
+            // Fetch video info
+            const videoInfo = await ytdl.request(url, format, quality);
+            if (!videoInfo) {
+                return res.status(404).json({ status: 404, author: 'Yudzxml', error: 'Video tidak ditemukan atau tidak dapat diakses.' });
+            }
+
+            // Jika format audio tidak ditentukan, default ke 'mp3'
+            const downloadFormat = format ? format.toLowerCase() : 'mp3';
+
+            // Jika kualitas video tidak ditentukan, gunakan kualitas default
+            const downloadQuality = quality ? quality : 'hd';
+
+            // Mengambil link unduhan
+            const downloadResponse = await ytdl.request(url, downloadFormat, downloadQuality);
+            if (downloadResponse && downloadResponse.id) {
+                // Menggunakan repeatRequest untuk mendapatkan link unduhan
+                const downloadLink = await ytdl.repeatRequest(downloadResponse.id);
+                return res.status(200).json({
+                    status: 200,
+                    author: 'Yudzxml',
+                    data: {
+                        videoInfo,
+                        downloadLink
+                    }
+                });
+            } else {
+                return res.status(404).json({ status: 404, author: 'Yudzxml', error: 'Link unduhan tidak ditemukan.' });
+            }
+        } catch (err) {
+            return res.status(500).json({ status: 500, author: 'Yudzxml', error: err.message });
+        }
+    } else {
+        res.setHeader('Allow', ['GET']);
+        res.status(405).json({ status: 405, author: 'Yudzxml', error: `Method ${method} Not Allowed` });
     }
-  } else {
-    res.setHeader('Allow', ['GET']);
-    res.status(405).json({ status: 405, author: 'Yudzxml', error: `Method ${method} Not Allowed` });
-  }
 };
