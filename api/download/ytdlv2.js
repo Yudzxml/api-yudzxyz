@@ -59,15 +59,15 @@ const ytdl = {
                 const {
                     data
                 } = await axios.get(
-                    https://p.oceansaver.in/ajax/download.php?format=${format}&url=${url}
+                    `https://p.oceansaver.in/ajax/download.php?format=${format}&url=${url}`
                 );
                 return data;
             } else if (SUPPORTED_VIDEO_QUALITIES[quality]) {
                 const {
                     data
                 } = await axios.get(
-                    https://p.oceansaver.in/ajax/download.php?copyright=0&format=${SUPPORTED_VIDEO_QUALITIES[quality]}&url=${url}&api=${ApiKeys}
-                );
+                    `https://p.oceansaver.in/ajax/download.php?copyright=0&format=${SUPPORTED_VIDEO_QUALITIES[quality]}&url=${url}&api=${ApiKeys}
+                `);
                 return data;
             } else {
                 console.error(
@@ -86,8 +86,8 @@ const ytdl = {
             const {
                 data
             } = await axios.get(
-                https://p.oceansaver.in/ajax/progress.php?id=${taskId}
-            );
+                `https://p.oceansaver.in/ajax/progress.php?id=${taskId}
+            `);
             return data;
         } catch (error) {
             console.error(Error (convert): ${error.message});
