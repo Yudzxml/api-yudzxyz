@@ -1,44 +1,42 @@
 const axios = require("axios");
 
-const SUPPORTED_AUDIO_FORMATS = ["mp3", "m4a", "webm", "acc", "flac", "ogg",
-    "wav"
-];
+const SUPPORTED_AUDIO_FORMATS = ["mp3", "m4a", "webm", "aac", "flac", "ogg", "wav"];
 
 function generateSimilarString() {
-  const hexChars = '0123456789abcdef';
-  const nonHexChars = 'gjkmnpqrstuvwxyz';
-  const allChars = hexChars + nonHexChars;
-  
-  let str = '';
-  
-  for (let i = 0; i < 16; i++) {
-    str += hexChars[Math.floor(Math.random() * hexChars.length)];
-  }
-  
-  const transitionPattern = [
-    {chars: hexChars, length: 1},
-    {chars: nonHexChars, length: 3},
-    {chars: allChars, length: 4},
-    {chars: hexChars, length: 2}
-  ];
-  
-  transitionPattern.forEach(section => {
-    for (let i = 0; i < section.length; i++) {
-      str += section.chars[Math.floor(Math.random() * section.chars.length)];
+    const hexChars = '0123456789abcdef';
+    const nonHexChars = 'gjkmnpqrstuvwxyz';
+    const allChars = hexChars + nonHexChars;
+
+    let str = '';
+
+    for (let i = 0; i < 16; i++) {
+        str += hexChars[Math.floor(Math.random() * hexChars.length)];
     }
-  });
 
-  const lastPart = () => {
-    let part = hexChars.substr(Math.floor(Math.random() * 6), 1);
-    part += Math.floor(Math.random() * 10);
-    part += Array(4).fill(Math.floor(Math.random() * 10)).join('');
-    part += Array(4).fill(part[part.length-1]).join('');
-    return part;
-  };
+    const transitionPattern = [
+        { chars: hexChars, length: 1 },
+        { chars: nonHexChars, length: 3 },
+        { chars: allChars, length: 4 },
+        { chars: hexChars, length: 2 }
+    ];
 
-  str += lastPart().substr(0, 16);
-  
-  return str.substr(0, 32);
+    transitionPattern.forEach(section => {
+        for (let i = 0; i < section.length; i++) {
+            str += section.chars[Math.floor(Math.random() * section.chars.length)];
+        }
+    });
+
+    const lastPart = () => {
+        let part = hexChars.substr(Math.floor(Math.random() * 6), 1);
+        part += Math.floor(Math.random() * 10);
+        part += Array(4).fill(Math.floor(Math.random() * 10)).join('');
+        part += Array(4).fill(part[part.length - 1]).join('');
+        return part;
+    };
+
+    str += lastPart().substr(0, 16);
+
+    return str.substr(0, 32);
 }
 
 const SUPPORTED_VIDEO_QUALITIES = {
@@ -50,47 +48,37 @@ const SUPPORTED_VIDEO_QUALITIES = {
     ultraHd: "4k",
 };
 
-const ApiKeys = generateSimilarString()
+const ApiKeys = generateSimilarString();
 
 const ytdl = {
     request: async (url, format, quality) => {
         try {
             if (SUPPORTED_AUDIO_FORMATS.includes(format)) {
-                const {
-                    data
-                } = await axios.get(
+                const { data } = await axios.get(
                     `https://p.oceansaver.in/ajax/download.php?format=${format}&url=${url}`
                 );
                 return data;
             } else if (SUPPORTED_VIDEO_QUALITIES[quality]) {
-                const {
-                    data
-                } = await axios.get(
-                    `https://p.oceansaver.in/ajax/download.php?copyright=0&format=${SUPPORTED_VIDEO_QUALITIES[quality]}&url=${url}&api=${ApiKeys}
-                `);
+                const { data } = await axios.get(
+                    `https://p.oceansaver.in/ajax/download.php?copyright=0&format=${SUPPORTED_VIDEO_QUALITIES[quality]}&url=${url}&api=${ApiKeys}`
+                );
                 return data;
             } else {
-                console.error(
-                    Invalid format or quality. Supported formats: ${SUPPORTED_AUDIO_FORMATS.join(
-            ", "
-          )}, Supported qualities: ${Object.keys(SUPPORTED_VIDEO_QUALITIES).join(", ")}
-                );
+                console.error(`Invalid format or quality. Supported formats: ${SUPPORTED_AUDIO_FORMATS.join(", ")}, Supported qualities: ${Object.keys(SUPPORTED_VIDEO_QUALITIES).join(", ")}`);
             }
         } catch (error) {
-            console.error(Error (request): ${error.message});
+            console.error(`Error (request): ${error.message}`);
         }
     },
 
     convert: async (taskId) => {
         try {
-            const {
-                data
-            } = await axios.get(
-                `https://p.oceansaver.in/ajax/progress.php?id=${taskId}
-            `);
+            const { data } = await axios.get(
+                `https://p.oceansaver.in/ajax/progress.php?id=${taskId}`
+            );
             return data;
         } catch (error) {
-            console.error(Error (convert): ${error.message});
+            console.error(`Error (convert): ${error.message}`);
         }
     },
 
@@ -104,8 +92,7 @@ const ytdl = {
                     };
                 }
             } catch (error) {
-                console.error(
-                    Error (repeatRequest): ${error.message});
+                console.error(`Error (repeatRequest): ${error.message}`);
             }
             await new Promise((resolve) => setTimeout(resolve, 3000));
         }
@@ -162,4 +149,4 @@ module.exports = async (req, res) => {
         res.setHeader('Allow', ['GET']);
         res.status(405).json({ status: 405, author: 'Yudzxml', error: `Method ${method} Not Allowed` });
     }
-};
+};           
