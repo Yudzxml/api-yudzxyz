@@ -121,10 +121,10 @@ module.exports = async (req, res) => {
             }
 
             // Jika format audio tidak ditentukan, default ke 'mp3'
-            const downloadFormat = format ? format.toLowerCase() : 'mp3';
+            const downloadFormat = format ? format.toLowerCase() : null;
 
             // Jika kualitas video tidak ditentukan, gunakan kualitas default
-            const downloadQuality = quality ? quality : 'hd';
+            const downloadQuality = quality ? quality : null;
 
             // Mengambil link unduhan
             const downloadResponse = await ytdl.request(url, downloadFormat, downloadQuality);
