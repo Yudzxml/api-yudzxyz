@@ -8,8 +8,8 @@
   ],
   "routes": [
     {
-      "src": "/api/download/remini",
-      "dest": "api/download/remini.js"
+      "src": "/api/tools/remini",
+      "dest": "api/tools/remini.js"
     },
     {
       "src": "/api/download/tiktok",
