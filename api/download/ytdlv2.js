@@ -2,6 +2,16 @@ const axios = require("axios");
 
 const SUPPORTED_AUDIO_FORMATS = ["mp3", "m4a", "webm", "aac", "flac", "ogg", "wav"];
 
+const SUPPORTED_VIDEO_QUALITIES = {
+    low: "360",
+    medium: "480",
+    hd: "720",
+    fullHd: "1080",
+    hdHigh: "1440",
+    ultraHd: "4k",
+};
+
+// Generate API key sekali saat server start
 function generateSimilarString() {
     const hexChars = '0123456789abcdef';
     const nonHexChars = 'gjkmnpqrstuvwxyz';
@@ -39,16 +49,10 @@ function generateSimilarString() {
     return str.substr(0, 32);
 }
 
-const SUPPORTED_VIDEO_QUALITIES = {
-    low: "360",
-    medium: "480",
-    hd: "720",
-    fullHd: "1080",
-    hdHigh: "1440",
-    ultraHd: "4k",
-};
-
 const ApiKeys = generateSimilarString();
+
+const MAX_RETRY = 5;
+const RETRY_DELAY_MS = 3000;
 
 const ytdl = {
     request: async (url, format, quality) => {
@@ -64,10 +68,12 @@ const ytdl = {
                 );
                 return data;
             } else {
-                console.error(`Invalid format or quality. Supported formats: ${SUPPORTED_AUDIO_FORMATS.join(", ")}, Supported qualities: ${Object.keys(SUPPORTED_VIDEO_QUALITIES).join(", ")}`);
+                console.error(`Invalid format or quality.`);
+                return null;
             }
         } catch (error) {
             console.error(`Error (request): ${error.message}`);
+            return null;
         }
     },
 
@@ -79,74 +85,73 @@ const ytdl = {
             return data;
         } catch (error) {
             console.error(`Error (convert): ${error.message}`);
+            return null;
         }
     },
 
     repeatRequest: async (taskId) => {
         while (true) {
-            try {
-                const response = await ytdl.convert(taskId);
-                if (response && response.download_url) {
-                    return {
-                        videoLinks: response.download_url,
-                    };
-                }
-            } catch (error) {
-                console.error(`Error (repeatRequest): ${error.message}`);
+            const response = await ytdl.convert(taskId);
+            if (response && response.download_url) {
+                return { videoLinks: response.download_url };
             }
-            await new Promise((resolve) => setTimeout(resolve, 3000));
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
         }
     },
+
+    requestWithRetry: async (url, format, quality) => {
+        for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
+            const response = await ytdl.request(url, format, quality);
+            if (response && response.id) {
+                return response;
+            }
+            console.log(`Request attempt ${attempt} failed, retrying in ${RETRY_DELAY_MS / 1000}s...`);
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        }
+        return null;
+    }
 };
 
-// Middleware untuk API
 module.exports = async (req, res) => {
     const { method } = req;
     if (method === 'GET') {
-        const { url, format, quality } = req.query; // Mengambil parameter dari query string
+        const { url, format, quality } = req.query;
+
         if (!url) {
-            return res.status(400).json({ status: 400, author: 'Yudzxml', error: 'URL tidak valid. Pastikan URL yang diberikan benar!' });
+            return res.status(400).json({ status: 400, author: 'Yudzxml', error: 'URL tidak valid.' });
         }
 
-        // Validasi format
-        if (format && !SUPPORTED_AUDIO_FORMATS.includes(format.toLowerCase()) && !Object.keys(SUPPORTED_VIDEO_QUALITIES).includes(quality)) {
-            return res.status(400).json({ status: 400, author: 'Yudzxml', error: `Format tidak valid. Pilih salah satu dari: ${SUPPORTED_AUDIO_FORMATS.join(', ')}` });
+        if (format && !SUPPORTED_AUDIO_FORMATS.includes(format.toLowerCase()) &&
+            !Object.keys(SUPPORTED_VIDEO_QUALITIES).includes(quality)) {
+            return res.status(400).json({ status: 400, author: 'Yudzxml', error: 'Format atau kualitas tidak valid.' });
         }
 
         try {
-            // Fetch video info
-            const videoInfo = await ytdl.request(url, format, quality);
-            if (!videoInfo) {
-                return res.status(404).json({ status: 404, author: 'Yudzxml', error: 'Video tidak ditemukan atau tidak dapat diakses.' });
+            // Request dengan retry sampai dapat task id
+            const downloadResponse = await ytdl.requestWithRetry(url, format?.toLowerCase(), quality);
+
+            if (!downloadResponse) {
+                return res.status(404).json({ status: 404, author: 'Yudzxml', error: 'Link unduhan tidak ditemukan setelah beberapa kali percobaan.' });
             }
 
-            // Jika format audio tidak ditentukan, default ke 'mp3'
-            const downloadFormat = format ? format.toLowerCase() : null;
+            // Tunggu sampai file siap di-download
+            const downloadLink = await ytdl.repeatRequest(downloadResponse.id);
 
-            // Jika kualitas video tidak ditentukan, gunakan kualitas default
-            const downloadQuality = quality ? quality : null;
+            return res.status(200).json({
+                status: 200,
+                author: 'Yudzxml',
+                data: {
+                    videoInfo: downloadResponse,
+                    downloadLink
+                }
+            });
 
-            // Mengambil link unduhan
-            const downloadResponse = await ytdl.request(url, downloadFormat, downloadQuality);
-            if (downloadResponse && downloadResponse.id) {
-                // Menggunakan repeatRequest untuk mendapatkan link unduhan
-                const downloadLink = await ytdl.repeatRequest(downloadResponse.id);
-                return res.status(200).json({
-                    status: 200,
-                    author: 'Yudzxml',
-                    data: {
-                        videoInfo,
-                        downloadLink
-                    }
-                });
-            } else {
-                return res.status(404).json({ status: 404, author: 'Yudzxml', error: 'Link unduhan tidak ditemukan.' });
-            }
         } catch (err) {
             return res.status(500).json({ status: 500, author: 'Yudzxml', error: err.message });
         }
+
     } else {
         res.setHeader('Allow', ['GET']);
         res.status(405).json({ status: 405, author: 'Yudzxml', error: `Method ${method} Not Allowed` });
     }
-};           
+};
