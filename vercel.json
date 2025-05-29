@@ -8,10 +8,6 @@
   ],
   "routes": [
     {
-      "src": "/api/tools/remini",
-      "dest": "api/tools/remini.js"
-    },
-    {
       "src": "/api/download/tiktok",
       "dest": "api/download/tiktok.js"
     },
@@ -44,16 +40,12 @@
       "dest": "api/search/komiku.js"
     },
     {
-      "src": "/api/ai/fluxai",
-      "dest": "api/ai/fluxai.js"
-    },
-    {
       "src": "/api/tools/speechtotext",
       "dest": "api/tools/speechtotext.js"
     },
     {
-      "src": "/api/download/ytdlv2",
-      "dest": "api/download/ytdlv2.js"
+      "src": "/api/download/aio",
+      "dest": "api/download/aio.js"      
     }
   ]
 }
