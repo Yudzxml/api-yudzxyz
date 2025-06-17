@@ -46,6 +46,10 @@
     {
       "src": "/api/download/aio",
       "dest": "api/download/aio.js"      
+    },  
+    {
+      "src": "/api/tools/imgToVideo",
+      "dest": "api/tools/imgToVideo.js"      
     }
   ]
 }
