@@ -61,21 +61,31 @@ const LoveTik = {
 };
 
 module.exports = async (req, res) => {
-    const { method } = req;
-    if (method === 'GET') {
-        const { url } = req.query; // Mengambil parameter dari query string
-        if (!url) {
-            return res.status(400).json({ error: 'URL tidak valid. Pastikan URL Yang diberikan Benar!!' });
-        }
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-        try {
-            const data = await LoveTik.dapatkan(url);
-            return res.status(200).json(data);
-        } catch (err) {
-            return res.status(500).json({ error: err.message });
-        }
-    } else {
-        res.setHeader('Allow', ['GET']);
-        res.status(405).end(`Method ${method} Not Allowed`);
+  const { method } = req;
+
+  // Tangani preflight request
+  if (method === 'OPTIONS') {
+    return res.status(200).end(); // cepat selesai tanpa body
+  }
+
+  if (method === 'GET') {
+    const { url } = req.query;
+    if (!url) {
+      return res.status(400).json({ error: 'URL tidak valid. Pastikan URL Yang diberikan Benar!!' });
     }
+
+    try {
+      const data = await LoveTik.dapatkan(url);
+      return res.status(200).json(data);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  } else {
+    res.setHeader('Allow', ['GET']);
+    res.status(405).end(`Method ${method} Not Allowed`);
+  }
 };
