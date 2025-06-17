@@ -1,18 +1,19 @@
 const ffmpegPath = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
-const ffprobe = require('fluent-ffmpeg').ffprobe;
+const ffprobeStatic = require('ffprobe-static');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const FormData = require('form-data');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 const osTmpDir = '/tmp';
 
-async function getAudioDuration(audioPath) {
+function getAudioDuration(audioPath) {
     return new Promise((resolve, reject) => {
-        ffprobe(audioPath, (err, metadata) => {
+        ffmpeg.ffprobe(audioPath, (err, metadata) => {
             if (err) return reject(err);
             resolve(metadata.format.duration);
         });
@@ -49,21 +50,21 @@ async function uploadFileToApi(filePath, expired) {
 }
 
 module.exports = async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins
-    res.setHeader('Access-Control-Allow-Methods', 'GET'); // Allow GET method
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type'); // Allow specific headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     const { imageUrls, imageUrl, audioUrl } = req.body;
 
-    if (!audioUrl) {
-        return res.status(400).json({ error: 'Missing audioUrl' });
-    }
-
-    if ((!imageUrl && !Array.isArray(imageUrls)) || (imageUrls && !Array.isArray(imageUrls))) {
-        return res.status(400).json({ error: 'Missing imageUrl or imageUrls array' });
+    if (!audioUrl || (!imageUrl && (!imageUrls || !Array.isArray(imageUrls)))) {
+        return res.status(400).json({ error: 'Missing audioUrl and/or imageUrl(s)' });
     }
 
     const tmpDir = osTmpDir;
@@ -75,7 +76,6 @@ module.exports = async function handler(req, res) {
         const audioDuration = await getAudioDuration(audioPath);
 
         if (Array.isArray(imageUrls)) {
-            // banyak gambar
             const listPath = path.join(tmpDir, 'list.txt');
             const listContent = [];
 
@@ -92,16 +92,14 @@ module.exports = async function handler(req, res) {
             await new Promise((resolve, reject) => {
                 ffmpeg()
                     .input(listPath)
-                    .inputOptions('-f concat', '-safe 0')
+                    .inputOptions(['-f concat', '-safe 0'])
                     .input(audioPath)
-                    .outputOptions('-c:v libx264', '-pix_fmt yuv420p', '-shortest')
+                    .outputOptions(['-c:v libx264', '-pix_fmt yuv420p', '-shortest'])
                     .save(outputVideo)
                     .on('end', resolve)
                     .on('error', reject);
             });
-
         } else {
-            // satu gambar
             const imgPath = path.join(tmpDir, 'image.jpg');
             await downloadFile(imageUrl, imgPath);
 
@@ -109,7 +107,7 @@ module.exports = async function handler(req, res) {
                 ffmpeg(imgPath)
                     .loop(audioDuration)
                     .input(audioPath)
-                    .outputOptions('-c:v libx264', '-pix_fmt yuv420p', '-shortest')
+                    .outputOptions(['-c:v libx264', '-pix_fmt yuv420p', '-shortest'])
                     .save(outputVideo)
                     .on('end', resolve)
                     .on('error', reject);
