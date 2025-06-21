@@ -14,7 +14,8 @@
     "whatwg-mimetype": "^4.0.0",
     "pdfkit": "^0.12.1",
     "form-data": "^4.0.0",
-    "btch-downloader": "^2.3.2"
+    "btch-downloader": "4.0.15",
+    "mime-types": "3.0.1"
   },
   "engines": {
     "node": "22.x"
