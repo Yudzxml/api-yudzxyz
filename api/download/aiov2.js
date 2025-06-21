@@ -4,6 +4,7 @@
  * - Memastikan semua `console.log`, `throw new Error`, dan `.end()` menggunakan template literal dengan benar
  */
 const axios = require('axios')
+const cheerio = require('cheerio');
 const {
   igdl,
   ttdl,
