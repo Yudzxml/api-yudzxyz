@@ -1,9 +1,4 @@
-/**
- * Perbaikan:
- * - Menempatkan penjelasan di dalam komentar (/* … *​/) atau komentar satu baris (// …)
- * - Memastikan semua `console.log`, `throw new Error`, dan `.end()` menggunakan template literal dengan benar
- */
-const axios = require('axios')
+const axios = require('axios');
 const cheerio = require('cheerio');
 const {
   igdl,
@@ -40,7 +35,14 @@ async function handleDownload(url) {
   console.log(`[DOWNLOAD] Detected platform: ${platform.name}`);
   const raw = await platform.fn(url);
   console.log(`[DOWNLOAD] Raw data from ${platform.name}:`, raw);
-  return { platform: platform.name, ...raw };
+
+  // Jika raw adalah array, ambil elemen pertama
+  const normalized = Array.isArray(raw) ? raw[0] : raw;
+
+  return {
+    platform: platform.name,
+    ...normalized
+  };
 }
 
 module.exports = async (req, res) => {
@@ -48,7 +50,6 @@ module.exports = async (req, res) => {
   console.log('Method:', req.method);
   console.log('Query:', req.query);
 
-  // Allow CORS untuk semua origin dan hanya metode GET
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -72,17 +73,21 @@ module.exports = async (req, res) => {
   try {
     const result = await handleDownload(url);
     console.log('[SUCCESS] Download result:', result);
-    return res
-      .status(200)
-      .json({ status: 200, author: 'Yudzxml', ...result });
+
+    return res.status(200).json({
+      status: 200,
+      author: 'Yudzxml',
+      data: result
+    });
   } catch (err) {
     console.error('[ERROR]', err.stack || err.message);
     const is404 = /404/.test(err.message);
     const message = is404
       ? 'Konten tidak ditemukan (404). Mungkin URL-nya sudah lari.'
       : `Terjadi kesalahan: ${err.message}`;
-    return res
-      .status(500)
-      .json({ status: 500, error: message });
+    return res.status(500).json({
+      status: 500,
+      error: message
+    });
   }
 };
