@@ -36,12 +36,9 @@ async function handleDownload(url) {
   const raw = await platform.fn(url);
   console.log(`[DOWNLOAD] Raw data from ${platform.name}:`, raw);
 
-  // Jika raw adalah array, ambil elemen pertama
-  const normalized = Array.isArray(raw) ? raw[0] : raw;
-
   return {
     platform: platform.name,
-    ...normalized
+    data: raw
   };
 }
 
@@ -71,13 +68,13 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const result = await handleDownload(url);
+    const resultFecth = await handleDownload(url);
     console.log('[SUCCESS] Download result:', result);
 
     return res.status(200).json({
       status: 200,
       author: 'Yudzxml',
-      data: result
+      result: resultFecth
     });
   } catch (err) {
     console.error('[ERROR]', err.stack || err.message);
