@@ -39,7 +39,7 @@ async function downloadFromPlatform(url) {
 module.exports = async (req, res) => {
   console.info('New request:', req.method, req.query);
 
-  // Set CORS headers
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -75,28 +75,21 @@ module.exports = async (req, res) => {
 
         try {
           const head = await axios.head(item.url);
-          const contentType = head.headers['content-type'] || '';
           const disposition = head.headers['content-disposition'] || '';
-
-          if (contentType.startsWith('image/')) {
-            type = 'image';
-          } else if (contentType.startsWith('video/')) {
-            type = 'video';
+          const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+          
+          if (filenameMatch && filenameMatch[1]) {
+            const mimeType = mime.lookup(filenameMatch[1]);
+            if (mimeType?.startsWith('image/')) type = 'image';
+            else if (mimeType?.startsWith('video/')) type = 'video';
+            else type = 'other';
           } else {
-            // fallback from filename
-            const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
-            if (filenameMatch && filenameMatch[1]) {
-              const mimeType = mime.lookup(filenameMatch[1]); // e.g., video/mp4
-              if (mimeType?.startsWith('image/')) type = 'image';
-              else if (mimeType?.startsWith('video/')) type = 'video';
-              else type = 'other';
-            } else {
-              type = 'other';
-            }
+            type = 'other';
           }
+
         } catch (err) {
           console.warn(`HEAD request failed for ${item.url}:`, err.message);
-          type = 'other'; // fallback default
+          type = 'other';
         }
 
         return { ...item, type };
