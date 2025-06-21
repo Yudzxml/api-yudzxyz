@@ -45,7 +45,7 @@
     },
     {
       "src": "/api/download/aio",
-      "dest": "api/download/aio.js"      
-    },  
+      "dest": "api/download/aio.js"
+    }
   ]
 }
