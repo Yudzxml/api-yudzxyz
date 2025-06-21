@@ -3,7 +3,7 @@
  * - Menempatkan penjelasan di dalam komentar (/* … *​/) atau komentar satu baris (// …)
  * - Memastikan semua `console.log`, `throw new Error`, dan `.end()` menggunakan template literal dengan benar
  */
-
+const axios = require('axios')
 const {
   igdl,
   ttdl,
