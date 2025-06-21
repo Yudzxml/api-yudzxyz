@@ -36,10 +36,33 @@ async function downloadFromPlatform(url) {
   };
 }
 
+// Contoh fungsi untuk menguji HEAD request dan ekstraksi type dari Content-Disposition
+async function detectTypeFromDisposition(url) {
+  try {
+    const response = await axios.head(url);
+    const cd = response.headers['content-disposition'] || '';
+    console.log('Content-Disposition:', cd);
+
+    let filename = '';
+    const match = cd.match(/filename\*?=(?:UTF-8''|)["']?([^"';\n]+)["']?/i);
+    if (match && match[1]) {
+      filename = decodeURIComponent(match[1]);
+    }
+
+    console.log('Filename:', filename);
+    const mimeType = mime.lookup(filename) || 'other';
+    console.log('Detected type:', mimeType);
+    return mimeType;
+  } catch (err) {
+    console.error('HEAD request failed:', err.message);
+    return 'other';
+  }
+}
+
 module.exports = async (req, res) => {
   console.info('New request:', req.method, req.query);
 
-  // CORS headers
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -57,7 +80,6 @@ module.exports = async (req, res) => {
   }
 
   const { url } = req.query;
-
   if (!url) {
     return res.status(400).json({
       status: 400,
@@ -71,30 +93,17 @@ module.exports = async (req, res) => {
 
     if (Array.isArray(result.data)) {
       const enriched = await Promise.all(result.data.map(async item => {
-        let type = 'unknown';
-
+        let type = 'other';
         try {
-          const head = await axios.head(item.url);
-          const disposition = head.headers['content-disposition'] || '';
-          const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
-          
-          if (filenameMatch && filenameMatch[1]) {
-            const mimeType = mime.lookup(filenameMatch[1]);
-            if (mimeType?.startsWith('image/')) type = 'image';
-            else if (mimeType?.startsWith('video/')) type = 'video';
-            else type = 'other';
-          } else {
-            type = 'other';
-          }
-
+          // Gunakan fungsi detectTypeFromDisposition untuk ambil type
+          const mimeType = await detectTypeFromDisposition(item.url);
+          if (mimeType.startsWith('image/')) type = 'image';
+          else if (mimeType.startsWith('video/')) type = 'video';
         } catch (err) {
-          console.warn(`HEAD request failed for ${item.url}:`, err.message);
-          type = 'other';
+          console.warn(`Failed to detect type for ${item.url}:`, err.message);
         }
-
         return { ...item, type };
       }));
-
       result.data = enriched;
     }
 
