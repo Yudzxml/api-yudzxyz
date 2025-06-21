@@ -1,5 +1,5 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
+const mime = require('mime-types');
 const {
   igdl,
   ttdl,
@@ -71,17 +71,36 @@ module.exports = async (req, res) => {
     if (Array.isArray(result.data)) {
       const enriched = await Promise.all(result.data.map(async item => {
         let type = 'unknown';
+
         try {
           const head = await axios.head(item.url);
-          const ct = head.headers['content-type'] || '';
-          if (ct.startsWith('image/')) type = 'image';
-          else if (ct.startsWith('video/')) type = 'video';
-          else type = 'other';
+          const contentType = head.headers['content-type'] || '';
+          const disposition = head.headers['content-disposition'] || '';
+
+          if (contentType.startsWith('image/')) {
+            type = 'image';
+          } else if (contentType.startsWith('video/')) {
+            type = 'video';
+          } else {
+            // fallback from filename
+            const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch && filenameMatch[1]) {
+              const mimeType = mime.lookup(filenameMatch[1]); // e.g., video/mp4
+              if (mimeType?.startsWith('image/')) type = 'image';
+              else if (mimeType?.startsWith('video/')) type = 'video';
+              else type = 'other';
+            } else {
+              type = 'other';
+            }
+          }
         } catch (err) {
           console.warn(`HEAD request failed for ${item.url}:`, err.message);
+          type = 'other'; // fallback default
         }
+
         return { ...item, type };
       }));
+
       result.data = enriched;
     }
 
