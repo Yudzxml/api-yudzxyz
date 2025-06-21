@@ -69,12 +69,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       status: 200,
       author: 'Yudzxml',
-      platform: result.platform,
-      data: {
-        title:      result.title      || 'Title not found',
-        thumbnail:  result.thumbnail  || 'Thumbnail not found',
-        downloadUrls: result.links    || result.downloadUrls || []
-      }
+      data: result
     });
   } catch (err) {
     console.error('[ERROR] ', err.stack || err.message);
