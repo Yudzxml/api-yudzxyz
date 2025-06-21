@@ -23,26 +23,40 @@ const platforms = [
 ];
 
 async function handleDownload(url) {
+  console.log('[DOWNLOAD] Received URL:', url);
+
   const platform = platforms.find(p => p.test(url));
   if (!platform) {
+    console.log('[DOWNLOAD] Platform not found for URL:', url);
     throw new Error(`Platform tidak dikenali untuk URL: ${url}`);
   }
+
+  console.log(`[DOWNLOAD] Detected platform: ${platform.name}`);
   const data = await platform.fn(url);
+  console.log(`[DOWNLOAD] Raw data received from ${platform.name}:`, data);
+
   return { platform: platform.name, ...data };
 }
 
 module.exports = async (req, res) => {
+  console.log('--- New Request ---');
+  console.log('Method:', req.method);
+  console.log('Query:', req.query);
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');  
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   const { method } = req;
   if (method !== 'GET') {
+    console.warn(`[WARN] Unsupported method: ${method}`);
     res.setHeader('Allow', ['GET']);
     return res.status(405).end(`Method ${method} Not Allowed`);
   }
 
   const { url } = req.query;
   if (!url) {
+    console.warn('[WARN] Missing `url` parameter');
     return res
       .status(400)
       .json({ error: 'Parameter `url` wajib diisi.' });
@@ -50,7 +64,8 @@ module.exports = async (req, res) => {
 
   try {
     const result = await handleDownload(url);
-    console.log(handleDownload)
+    console.log('[SUCCESS] Download result:', result);
+
     return res.status(200).json({
       status: 200,
       author: 'Yudzxml',
@@ -62,7 +77,7 @@ module.exports = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err);
+    console.error('[ERROR] ', err.stack || err.message);
     return res.status(500).json({
       status: 500,
       error: err.message.includes('404')
