@@ -8,6 +8,10 @@
   ],
   "routes": [
     {
+      "src": "/api/download/fb",
+      "dest": "api/download/fb.js"
+    },
+    {
       "src": "/api/download/tiktok",
       "dest": "api/download/tiktok.js"
     },
