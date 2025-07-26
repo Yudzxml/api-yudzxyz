@@ -32,10 +32,6 @@
       "dest": "api/tools/check-host.js"
     },
     {
-      "src": "/api/download/mediafire",
-      "dest": "api/download/mediafire.js"
-    },
-    {
       "src": "/api/download/apk",
       "dest": "api/download/apk.js"
     },
@@ -58,10 +54,6 @@
     {
       "src": "/api/download/tiktokv2",
       "dest": "api/download/tiktokv2.js"
-    },
-    {
-      "src": "/api/download/ytdlv2",
-      "dest": "api/download/ytdlv2.js"
     }
   ]
 }
