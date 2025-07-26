@@ -48,8 +48,12 @@
       "dest": "api/tools/speechtotext.js"
     },
     {
-      "src": "/api/download/aio",
-      "dest": "api/download/aio.js"
+      "src": "/api/download/pindl",
+      "dest": "api/download/pindl.js"
+    },
+    {
+      "src": "/api/search/jadwalshalat",
+      "dest": "api/search/jadwalshalat.js"
     }
   ]
 }
