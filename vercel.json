@@ -54,6 +54,10 @@
     {
       "src": "/api/search/jadwalshalat",
       "dest": "api/search/jadwalshalat.js"
+    },
+    {
+      "src": "/api/download/tiktokv2",
+      "dest": "api/download/tiktokv2.js"
     }
   ]
 }
