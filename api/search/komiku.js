@@ -208,7 +208,7 @@ class Komiku {
     } catch (error) {
         return {
             status: false,
-            author: "Yudzxml"
+            author: "Yudzxml",
             message: "Chapternya kaga ada bree, coba lagi nanti",
             error: error.message,
             data: null
