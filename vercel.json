@@ -8,8 +8,8 @@
   ],
   "routes": [
     {
-      "src": "/api/download/fb",
-      "dest": "api/download/fb.js"
+      "src": "/api/download/tiktok",
+      "dest": "api/download/tiktok.js"
     },
     {
       "src": "/api/download/tiktok",
@@ -54,6 +54,10 @@
     {
       "src": "/api/download/tiktokv2",
       "dest": "api/download/tiktokv2.js"
+    },
+    {
+      "src": "/api/tools/2fa-live",
+      "dest": "api/tools/2fa-live.js"
     }
   ]
 }
