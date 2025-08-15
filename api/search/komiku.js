@@ -30,7 +30,7 @@ class Komiku {
             throw { status: 500, author: "Yudzxml", error: error.message };
         }
     }
-     async search(q) {
+    async search(q) {
         try {
             const response = await axios.get(`${this.baseUrl}/?post_type=manga&s=${q}`);
             const $ = cheerio.load(response.data);
@@ -46,7 +46,6 @@ class Komiku {
             throw { status: 500, author: "Yudzxml", error: error.message };
         }
     }
-    
     async populer(page = 1) {
     const url = `${this.baseUrl}/other/hot/page/${page}/`;
 
@@ -97,7 +96,6 @@ class Komiku {
         };
     }
 }
-
     async detail(url) {
     try {
         const { data } = await axios.get(url);
@@ -177,7 +175,6 @@ class Komiku {
         };
     }
 }
-
     async chapter(url) {
     try {
         const { data } = await axios.get(url);
@@ -215,7 +212,6 @@ class Komiku {
         };
     }
 }
-
     async searchByGenre(genre = 'action', page = 1) {
     const url = `${this.baseUrl}/genre/${genre}/page/${page}/`;
     const availableGenres = [
@@ -294,6 +290,88 @@ if (!availableGenres.includes(genre)) {
         };
     }
 }
+    async getKomikuList(tipe = "manga", page = 1) {
+  const url = `https://api.komiku.org/manga/page/${page}/?tipe=${tipe}`;
+  const res = await fetch(url);
+  const html = await res.text();
+
+  const $ = cheerio.load(html);
+  const results = [];
+
+  $(".bge").each((i, el) => {
+    const container = $(el);
+
+    const link = container.find(".bgei a").attr("href");
+    const image = container.find(".bgei img").attr("src");
+    const type = container.find(".tpe1_inf b").text().trim();
+    const genre = container.find(".tpe1_inf").text().replace(type, "").trim();
+    const title = container.find(".kan h3").text().trim();
+    const readersText = container.find(".judul2").text().split("•")[0].trim();
+    const lastUpdate = container.find(".judul2").text().split("•")[1]?.trim();
+    const description = container.find("p").first().text().trim();
+
+    const chapterStart = {
+      title: container.find(".new1").first().find("span").last().text().trim(),
+      url: "https://komiku.org" + container.find(".new1").first().find("a").attr("href"),
+    };
+
+    const chapterLatest = {
+      title: container.find(".new1").last().find("span").last().text().trim(),
+      url: "https://komiku.org" + container.find(".new1").last().find("a").attr("href"),
+    };
+
+    results.push({
+      title,
+      type,
+      genre,
+      image,
+      url: link,
+      readers: readersText,
+      lastUpdate,
+      description,
+      chapterStart,
+      chapterLatest
+    });
+  });
+
+  return results;
+}
+    async daftarList(tipe = "manga") {
+  const url = `https://komiku.org/daftar-komik/?tipe=${encodeURIComponent(tipe)}`;
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
+  });
+  const html = await res.text();
+  const $ = cheerio.load(html);
+  const results = [];
+
+  $(".ls4").each((i, el) => {
+    const container = $(el);
+
+    const link = container.find(".ls4v a").attr("href");
+    const image = container.find(".ls4v img").attr("data-src");
+    const title = container.find(".ls4j h4 a").text().trim();
+
+    const spans = container.find(".ls4j .ls4s");
+    const category = $(spans[0]).text().trim();
+    const status = $(spans[1]).text().replace("Status:", "").trim();
+    const genreText = $(spans[2]).text().replace("Genre:", "").trim();
+    const genres = genreText.split(",").map(g => g.trim());
+
+    results.push({
+      title,
+      url: link ? `https://komiku.org${link}` : null,
+      image,
+      category,
+      status,
+      genres
+    });
+  });
+
+  return results;
+}
 }
 
 module.exports = async (req, res) => {
@@ -305,7 +383,7 @@ module.exports = async (req, res) => {
     const komiku = new Komiku();
 
     if (method === 'GET') {
-        const { action, url, query, genre, page } = req.query;
+        const { action, url, query, tipe, genre, page } = req.query;
         try {
             let result;
             switch(action) {
@@ -329,6 +407,12 @@ module.exports = async (req, res) => {
                     break;
                 case 'genre':
                     result = await komiku.searchByGenre(genre || 'action', page ? parseInt(page) : 1);
+                    break;
+                case 'getkomikulist':
+                    result = await komiku.getKomikuList(tipe || 'manga', page ? parseInt(page) : 1);
+                    break;
+                case 'daftarlist':
+                    result = await komiku.daftarlist(tipe || 'manga');
                     break;
                 default:
                     return res.status(400).json({ status: 400, author: "Yudzxml", error: 'Aksi tidak valid.' });
