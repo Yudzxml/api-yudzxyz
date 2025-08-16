@@ -372,6 +372,82 @@ if (!availableGenres.includes(genre)) {
 
   return results;
 }
+    async topRank() {
+  try {
+    const { data: html } = await axios.get('https://komiku.org/?halaman-1', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+    });
+
+    const $ = cheerio.load(html);
+
+    // Helper untuk scrap tiap section
+    const scrapeSection = (sectionId) => {
+      const list = [];
+      $(`${sectionId} .ls12 article.ls2`).each((i, el) => {
+        const title = $(el).find('.ls2j h3 a').text().trim();
+        const genre = $(el).find('.ls2j .ls2t').text().trim();
+        const chapter = $(el).find('.ls2j .ls2l').text().trim();
+        const link = 'https://komiku.org' + $(el).find('.ls2j h3 a').attr('href');
+        const img = $(el).find('.ls2v img').attr('data-src');
+
+        list.push({ title, genre, chapter, link, img });
+      });
+      return list;
+    };
+
+    // Ambil data dari semua section
+    const peringkatKomiku = scrapeSection('#Rekomendasi_Komik');
+    const mangaPopuler = scrapeSection('#Komik_Hot_Manga');
+    const manhwaPopuler = scrapeSection('#Komik_Hot_Manhwa');
+
+    // Return semua hasil dalam satu object
+    return { peringkatKomiku, mangaPopuler, manhwaPopuler };
+
+  } catch (error) {
+    console.error('❌ Terjadi kesalahan:', error.message);
+    return {
+      peringkatKomiku: [],
+      mangaPopuler: [],
+      manhwaPopuler: []
+    };
+  }
+}
+    async rekomendasi() {
+  const { data } = await axios.get("https://komiku.org/?halaman-2");
+  const $ = cheerio.load(data);
+
+  const result = {};
+
+  $('.mirip1').each((i, section) => {
+    const category = $(section).find('h3').first().text().trim();
+    if (!category) return;
+
+    result[category] = [];
+
+    // ambil semua komik besar
+    $(section).find('.ls5b').each((i, el) => {
+      const a = $(el).find('a');
+      const name = $(el).find('h4').text().trim();
+      const link = a.attr('href') ? 'https://komiku.org' + a.attr('href') : null;
+      const img = $(el).find('img').attr('data-src') || $(el).find('img').attr('src');
+      const info = $(el).find('span').text().trim() || '';
+      result[category].push({ name, link, img, info });
+    });
+
+    // ambil semua komik artikel / list
+    $(section).find('article.ls5').each((i, el) => {
+      const a = $(el).find('a');
+      const name = $(el).find('h4').text().trim();
+      const link = a.attr('href') ? 'https://komiku.org' + a.attr('href') : null;
+      const img = $(el).find('img').attr('data-src') || $(el).find('img').attr('src');
+      result[category].push({ name, link, img });
+    });
+  });
+
+  return result;
+}
 }
 
 module.exports = async (req, res) => {
@@ -413,6 +489,12 @@ module.exports = async (req, res) => {
                     break;
                 case 'daftarlist':
                     result = await komiku.daftarList(tipe || 'manga');
+                    break;
+                case 'toprank':
+                    result = await komiku.topRank();
+                    break;
+                case 'rekomendasi':
+                    result = await komiku.rekomendasi();
                     break;
                 default:
                     return res.status(400).json({ status: 400, author: "Yudzxml", error: 'Aksi tidak valid.' });
