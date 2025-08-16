@@ -412,7 +412,7 @@ module.exports = async (req, res) => {
                     result = await komiku.getKomikuList(tipe || 'manga', page ? parseInt(page) : 1);
                     break;
                 case 'daftarlist':
-                    result = await komiku.daftarlist(tipe || 'manga');
+                    result = await komiku.daftarList(tipe || 'manga');
                     break;
                 default:
                     return res.status(400).json({ status: 400, author: "Yudzxml", error: 'Aksi tidak valid.' });
