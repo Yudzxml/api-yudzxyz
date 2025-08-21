@@ -1,55 +1,43 @@
-const axios = require("axios");
 const cheerio = require("cheerio");
-const FormData = require("form-data");
 
-async function pindl(link) {
-    const result = {
-        status: 200,
-        data: {
-            author: "Yudzxml",
-            platform: "Pinterest",
-            source: link,
-            type: "video",
-            video_url: ""
-        }
+async function pindl(pinUrl) {
+  try {
+    const initRes = await fetch("https://www.expertstool.com/download-pinterest-video/");
+    const setCookie = initRes.headers.get("set-cookie");
+    if (!setCookie) throw new Error("Cookie tidak ditemukan.");
+
+    const response = await fetch("https://www.expertstool.com/download-pinterest-video/", {
+      method: "POST",
+      headers: {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Cookie": setCookie,
+        "Referer": "https://www.expertstool.com/download-pinterest-video/",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "sec-ch-ua": '"Chromium";v="139", "Not;A=Brand";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Linux"',
+      },
+      body: new URLSearchParams({ url: pinUrl })
+    });
+
+    if (!response.ok) throw new Error("Gagal mendapatkan respon dari API.");
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const downloadLink = $("a[download]").attr("href") || "";
+
+    return { 
+      status: 200,
+      author: "Yudzxml", 
+      data: { 
+      url: downloadLink 
+      }
     };
-
-    try {
-        const form = new FormData();
-        form.append("url", link);
-
-        const response = await axios({
-            method: "POST",
-            url: "https://pinterestvideodownloader.com/download.php",
-            headers: {
-                ...form.getHeaders(),
-                Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-                Origin: "https://pinterestvideodownloader.com",
-                Referer: "https://pinterestvideodownloader.com/id/",
-            },
-            data: form,
-        });
-
-        const $ = cheerio.load(response.data);
-        const videoElement = $("video").first();
-        const videoUrl = videoElement.attr("src");
-
-        if (!videoUrl) {
-            result.status = 404;
-            result.data.video_url = null;
-            result.data.error = "Video tidak ditemukan di halaman.";
-        } else {
-            result.data.video_url = videoUrl;
-        }
-
-    } catch (err) {
-        console.error("Terjadi kesalahan saat mengunduh:", err.message);
-        result.status = 500;
-        result.data.error = "Gagal mengambil data dari server Pinterest.";
-    }
-
-    return result;
+  } catch (error) {
+    console.error("Gagal fetch.", error.message);
+    return null;
+  }
 }
 
 module.exports = async (req, res) => {
