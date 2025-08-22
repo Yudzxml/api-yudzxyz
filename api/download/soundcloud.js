@@ -1,5 +1,5 @@
 const qs = require('qs'); 
-const axios = require('axios').default;
+const axios = require('axios');
 const tough = require('tough-cookie');
 const { wrapper } = require('axios-cookiejar-support');
 
@@ -62,7 +62,7 @@ async function download(trackUrl) {
     },
   });
 
-  // Simpan file jika ingin
+
   const $ = cheerio.load(res.data);
     const dlDiv = $("#dlMP3");
 
