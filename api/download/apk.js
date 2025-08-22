@@ -1,5 +1,4 @@
 const axios = require('axios');
-const fetch = require('node-fetch-commonjs');
 
 const APIs = {
   1: "https://apkcombo.com",
