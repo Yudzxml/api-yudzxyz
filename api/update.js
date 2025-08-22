@@ -1,5 +1,3 @@
-const fetch = require('node-fetch-commonjs');
-
 async function updatebot() {
     let yudz = await fetch(`https://github.com/Yudzxml/Runbot/raw/refs/heads/main/ngokntlm.json`);
     let hasil = await yudz.json();
