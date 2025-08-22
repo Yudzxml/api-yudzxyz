@@ -124,20 +124,20 @@ module.exports = async (req, res) => {
         });
     }
 
-    const { url, query } = req.query;
+    const { download, search } = req.query;
 
     try {
-        if (url) {
+        if (download) {
             // lakukan download
-            const result = await download(url);
+            const result = await download(download);
             return res.status(200).json({
                 author: "Yudzxml",
                 status: 200,
                 data: result,
             });
-        } else if (query) {
+        } else if (search) {
             // lakukan search
-            const result = await search(query);
+            const result = await search(search);
             return res.status(200).json({
                 author: "Yudzxml",
                 status: 200,
