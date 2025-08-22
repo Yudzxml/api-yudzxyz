@@ -44,7 +44,7 @@ async function getCrfToken() {
     console.error('Error fetching CSRF token:', error.message);
    }
  }
-async function download(trackUrl) {
+async function scdownload(trackUrl) {
   const { csrfToken, cookies } = await getCrfToken();
 
   const body = qs.stringify({
@@ -74,7 +74,7 @@ async function download(trackUrl) {
 
     return { downloadUrl, filename };
   }
-async function search(query) {
+async function scsearch(query) {
   try {
     const response = await axios.get(
       `https://proxy.searchsoundcloud.com/tracks?q=${encodeURIComponent(query)}`,
@@ -129,7 +129,7 @@ module.exports = async (req, res) => {
     try {
         if (download) {
             // lakukan download
-            const result = await download(download);
+            const result = await scdownload(download);
             return res.status(200).json({
                 author: "Yudzxml",
                 status: 200,
@@ -137,7 +137,7 @@ module.exports = async (req, res) => {
             });
         } else if (search) {
             // lakukan search
-            const result = await search(search);
+            const result = await scsearch(search);
             return res.status(200).json({
                 author: "Yudzxml",
                 status: 200,
@@ -147,7 +147,7 @@ module.exports = async (req, res) => {
             return res.status(400).json({
                 author: "Yudzxml",
                 status: 400,
-                error: 'Parameter "url" atau "query" wajib diisi.',
+                error: 'Parameter "seacrh" atau "download" wajib diisi.',
             });
         }
     } catch (err) {
